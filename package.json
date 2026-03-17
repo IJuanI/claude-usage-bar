@@ -1,8 +1,9 @@
 {
-  "name": "ijuani-claude-better-usage",
+  "name": "claude-better-usage",
   "publisher": "ijuani",
   "displayName": "Claude Code - Better Usage",
   "description": "Shows Claude Code usage (rate limits) in the VSCode status bar",
+  "icon": "favicon.png",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -2,6 +2,14 @@
 
 A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage and rate limits directly in the status bar and sidebar.
 
+## Screenshots
+
+![Sidebar panel](media/sidebar.png)
+
+![Status bar](media/statusbar.png)
+
+![Hover tooltip](media/tooltip.png)
+
 ## Features
 
 - **Status bar** — at-a-glance usage with countdown to reset
