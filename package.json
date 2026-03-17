@@ -1,0 +1,54 @@
+{
+  "name": "ijuani-claude-usage-bar",
+  "publisher": "ijuani",
+  "displayName": "Claude Code Usage Bar",
+  "description": "Shows Claude Code usage (rate limits) in the VSCode status bar",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeUsageBar.refresh",
+        "title": "Claude Usage Bar: Refresh"
+      },
+      {
+        "command": "claudeUsageBar.openPanel",
+        "title": "Claude Usage Bar: Open Panel"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "claudeUsageBar.usageView",
+          "name": "Claude Usage"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Claude Usage Bar",
+      "properties": {
+        "claudeUsageBar.refreshInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "How often to refresh usage data (seconds)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}
