@@ -317,7 +317,7 @@ export function activate(context: vscode.ExtensionContext) {
   tick();
 
   const config = vscode.workspace.getConfiguration('claudeUsageBar');
-  const intervalSecs = config.get<number>('refreshInterval', 30);
+  const intervalSecs = config.get<number>('refreshInterval', 60);
   const timer = setInterval(() => tick(), intervalSecs * 1000);
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
 }

@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/IJuanI/claude-usage-bar"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -45,7 +45,7 @@
       "properties": {
         "claudeUsageBar.refreshInterval": {
           "type": "number",
-          "default": 30,
+          "default": 60,
           "description": "How often to refresh usage data (seconds)"
         }
       }

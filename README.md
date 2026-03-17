@@ -2,19 +2,20 @@
 
 A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage and rate limits directly in the status bar and sidebar.
 
-## Screenshots
-
-![Sidebar panel](media/sidebar.png)
-
-![Status bar](media/statusbar.png)
-
-![Hover tooltip](media/tooltip.png)
-
 ## Features
 
 - **Status bar** — at-a-glance usage with countdown to reset
+
+  ![Status bar](media/statusbar.png)
+
 - **Hover tooltip** — per-limit breakdown with progress bars and activity stats
+
+  ![Hover tooltip](media/tooltip.png)
+
 - **Sidebar panel** — full-detail view accessible from the Explorer, opens on status bar click
+
+  ![Sidebar panel](media/sidebar.png)
+
 - **Auto-refresh** — polls on a configurable interval; multiple VS Code windows share a cache to avoid hammering the API
 - **429 backoff** — automatically backs off for 5 minutes if rate-limited
 
@@ -37,7 +38,7 @@ A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage 
 
 | Setting | Default | Description |
 |---|---|---|
-| `claudeUsageBar.refreshInterval` | `30` | How often to refresh usage data (seconds) |
+| `claudeUsageBar.refreshInterval` | `60` | How often to refresh usage data (seconds) |
 
 ## How it works
 
