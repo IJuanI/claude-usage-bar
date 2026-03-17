@@ -6,15 +6,15 @@ A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage 
 
 - **Status bar** — at-a-glance usage with countdown to reset
 
-  ![Status bar](media/statusbar.png)
+  ![Status bar](https://raw.githubusercontent.com/IJuanI/claude-usage-bar/main/media/statusbar.png)
 
 - **Hover tooltip** — per-limit breakdown with progress bars and activity stats
 
-  ![Hover tooltip](media/tooltip.png)
+  ![Hover tooltip](https://raw.githubusercontent.com/IJuanI/claude-usage-bar/main/media/tooltip.png)
 
 - **Sidebar panel** — full-detail view accessible from the Explorer, opens on status bar click
 
-  ![Sidebar panel](media/sidebar.png)
+  ![Sidebar panel](https://raw.githubusercontent.com/IJuanI/claude-usage-bar/main/media/sidebar.png)
 
 - **Auto-refresh** — polls on a configurable interval; multiple VS Code windows share a cache to avoid hammering the API
 - **Smart warnings** — proactive notifications so you don't get caught off guard:
