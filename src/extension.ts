@@ -13,6 +13,7 @@ import {
   CACHE_TTL_MS,
 } from './cache';
 import { getWebviewHtml } from './webview';
+import { evaluateWarnings, freshWarningState } from './warnings';
 
 const BACKOFF_429_MS = 5 * 60_000;
 
@@ -70,6 +71,8 @@ export function activate(context: vscode.ExtensionContext) {
     fetchError: null,
     backoffUntil: 0,
   };
+
+  const warned = freshWarningState();
 
   const statusBar = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -277,6 +280,12 @@ export function activate(context: vscode.ExtensionContext) {
   function render() {
     renderStatusBar();
     viewProvider.update();
+    if (state.usage) {
+      for (const w of evaluateWarnings(state.usage, warned)) {
+        if (w.level === 'warning') vscode.window.showWarningMessage(w.message);
+        else vscode.window.showInformationMessage(w.message);
+      }
+    }
   }
 
   // ── Sidebar view ──────────────────────────────────────────────

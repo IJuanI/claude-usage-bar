@@ -45,7 +45,7 @@ export async function fetchUsageData(accessToken: string): Promise<UsageData> {
   return parseUsage(JSON.parse(body) as Record<string, unknown>);
 }
 
-function parseBucket(v: unknown): UsageBucket | null {
+export function parseBucket(v: unknown): UsageBucket | null {
   if (!v || typeof v !== 'object') return null;
   const obj = v as Record<string, unknown>;
   if (obj['utilization'] == null) return null;
@@ -55,7 +55,7 @@ function parseBucket(v: unknown): UsageBucket | null {
   };
 }
 
-function parseUsage(raw: Record<string, unknown>): UsageData {
+export function parseUsage(raw: Record<string, unknown>): UsageData {
   const extra = raw['extra_usage'] as Record<string, unknown> | null;
   return {
     fiveHour: parseBucket(raw['five_hour']),

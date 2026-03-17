@@ -17,6 +17,10 @@ A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage 
   ![Sidebar panel](media/sidebar.png)
 
 - **Auto-refresh** — polls on a configurable interval; multiple VS Code windows share a cache to avoid hammering the API
+- **Smart warnings** — proactive notifications so you don't get caught off guard:
+  - **Session hot** — warns when session usage ≥ 80% with 1h+ until reset (you're burning through it fast)
+  - **Weekly hot** — warns when weekly usage ≥ 80% with 24h+ until reset (may run out before it resets)
+  - **Use it or lose it** — nudges when weekly usage < 60% with < 2 days until reset (unused capacity about to expire)
 - **429 backoff** — automatically backs off for 5 minutes if rate-limited
 
 ## What's shown
