@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/IJuanI/claude-usage-bar"
   },
-  "version": "0.3.3",
+  "version": "0.3.4",
   "engines": {
     "vscode": "^1.85.0"
   },
