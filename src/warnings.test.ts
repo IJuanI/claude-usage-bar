@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateWarnings, freshWarningState, WARNING_COOLDOWN_MS } from './warnings';
+import { evaluateWarnings, freshWarningState } from './warnings';
 import { UsageData } from './rateLimits';
 
 const HOUR = 3_600_000;
@@ -29,38 +29,44 @@ function makeUsage(overrides: Partial<{
 describe('evaluateWarnings', () => {
   describe('session hot (>=80%, >=1h to reset)', () => {
     it('warns when session is at 80% with 2h left', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
       expect(result[0].level).toBe('warning');
       expect(result[0].message).toContain('session at 85%');
+      expect(warned.sessionHotCount).toBe(1);
     });
 
     it('does not warn when session is at 80% but less than 1h to reset', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 30 * 60_000 });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 30 * 60_000 }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
     it('does not warn when session is below 80%', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 70, fiveHourResetsIn: 3 * HOUR });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ fiveHourPct: 70, fiveHourResetsIn: 3 * HOUR }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
     it('fires at exactly 80% with exactly 1h', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 80, fiveHourResetsIn: HOUR });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ fiveHourPct: 80, fiveHourResetsIn: HOUR }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
     });
 
     it('does not fire at 79.5% session', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 79.5, fiveHourResetsIn: 2 * HOUR });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ fiveHourPct: 79.5, fiveHourResetsIn: 2 * HOUR }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
@@ -68,8 +74,9 @@ describe('evaluateWarnings', () => {
 
   describe('weekly hot (>=80%, >=24h to reset)', () => {
     it('warns when weekly is at 80% with 3 days left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 82, weeklyResetsIn: 3 * DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 82, weeklyResetsIn: 3 * DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
       expect(result[0].level).toBe('warning');
@@ -77,15 +84,17 @@ describe('evaluateWarnings', () => {
     });
 
     it('does not warn when weekly is high but less than 24h to reset', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 90, weeklyResetsIn: 12 * HOUR });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 90, weeklyResetsIn: 12 * HOUR }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
     it('does not warn when weekly is below 80%', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 75, weeklyResetsIn: 5 * DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 75, weeklyResetsIn: 5 * DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
@@ -93,8 +102,9 @@ describe('evaluateWarnings', () => {
 
   describe('weekly underuse (<60%, <2 days to reset)', () => {
     it('shows info when weekly at 40% with 1 day left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 40, weeklyResetsIn: DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
       expect(result[0].level).toBe('info');
@@ -103,99 +113,147 @@ describe('evaluateWarnings', () => {
     });
 
     it('does not show when weekly at 40% but 3 days left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: 3 * DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 40, weeklyResetsIn: 3 * DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
     it('does not show when weekly at 70% with 1 day left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 70, weeklyResetsIn: DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 70, weeklyResetsIn: DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
     it('fires at exactly 59% with just under 2 days', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 59, weeklyResetsIn: 2 * DAY - 1 });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 59, weeklyResetsIn: 2 * DAY - 1 }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
       expect(result[0].level).toBe('info');
     });
 
     it('does not fire at exactly 60%', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 60, weeklyResetsIn: DAY });
-      const warned = freshWarningState();
+      const now = Date.now();
+      const { usage } = makeUsage({ weeklyPct: 60, weeklyResetsIn: DAY }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
   });
 
-  describe('cooldown-based re-firing', () => {
-    it('does not re-fire within cooldown window', () => {
+  describe('scheduled re-firing (startup, +1h, +2h, then stop)', () => {
+    it('fires on first evaluation (startup)', () => {
       const now = Date.now();
-      const { usage } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, now);
-      const warned = freshWarningState();
+      const { usage } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 3 * HOUR }, now);
+      const warned = freshWarningState(now);
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(1);
+      expect(warned.sessionHotCount).toBe(1);
+    });
 
+    it('does not fire again before 1h', () => {
+      const now = Date.now();
+      const warned = freshWarningState(now);
+
+      const { usage } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 3 * HOUR }, now);
       evaluateWarnings(usage, warned, now);
-      const second = evaluateWarnings(usage, warned, now + 10 * 60_000); // 10 min later
-      expect(second).toHaveLength(0);
+
+      const at30m = now + 30 * 60_000;
+      const { usage: u2 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 3 * HOUR }, at30m);
+      const result = evaluateWarnings(u2, warned, at30m);
+      expect(result).toHaveLength(0);
+      expect(warned.sessionHotCount).toBe(1);
     });
 
-    it('re-fires session warning after cooldown expires (30 min)', () => {
+    it('fires second time at 1h', () => {
       const now = Date.now();
-      const { usage } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, now);
-      const warned = freshWarningState();
+      const warned = freshWarningState(now);
 
-      const first = evaluateWarnings(usage, warned, now);
-      expect(first).toHaveLength(1);
+      const { usage } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 4 * HOUR }, now);
+      evaluateWarnings(usage, warned, now);
 
-      const laterNow = now + WARNING_COOLDOWN_MS;
-      const { usage: usage2 } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, laterNow);
-      const second = evaluateWarnings(usage2, warned, laterNow);
-      expect(second).toHaveLength(1);
+      const at1h = now + HOUR;
+      const { usage: u2 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 4 * HOUR }, at1h);
+      const result = evaluateWarnings(u2, warned, at1h);
+      expect(result).toHaveLength(1);
+      expect(warned.sessionHotCount).toBe(2);
     });
 
-    it('re-fires weekly warning after cooldown', () => {
+    it('fires third time at 2h', () => {
       const now = Date.now();
-      const { usage } = makeUsage({ weeklyPct: 85, weeklyResetsIn: 3 * DAY }, now);
-      const warned = freshWarningState();
+      const warned = freshWarningState(now);
 
-      const first = evaluateWarnings(usage, warned, now);
-      expect(first).toHaveLength(1);
+      const { usage } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, now);
+      evaluateWarnings(usage, warned, now);
 
-      const laterNow = now + WARNING_COOLDOWN_MS;
-      const { usage: usage2 } = makeUsage({ weeklyPct: 85, weeklyResetsIn: 3 * DAY }, laterNow);
-      const second = evaluateWarnings(usage2, warned, laterNow);
-      expect(second).toHaveLength(1);
+      const at1h = now + HOUR;
+      const { usage: u2 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, at1h);
+      evaluateWarnings(u2, warned, at1h);
+
+      const at2h = now + 2 * HOUR;
+      const { usage: u3 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, at2h);
+      const result = evaluateWarnings(u3, warned, at2h);
+      expect(result).toHaveLength(1);
+      expect(warned.sessionHotCount).toBe(3);
     });
 
-    it('re-fires underuse warning after cooldown', () => {
+    it('does not fire a 4th time after 2h', () => {
       const now = Date.now();
-      const { usage } = makeUsage({ weeklyPct: 25, weeklyResetsIn: DAY }, now);
-      const warned = freshWarningState();
+      const warned = freshWarningState(now);
 
-      const first = evaluateWarnings(usage, warned, now);
-      expect(first).toHaveLength(1);
-      expect(first[0].message).toContain('Use it or lose it');
+      const { usage } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, now);
+      evaluateWarnings(usage, warned, now);
 
-      const laterNow = now + WARNING_COOLDOWN_MS;
-      const { usage: usage2 } = makeUsage({ weeklyPct: 25, weeklyResetsIn: DAY }, laterNow);
-      const second = evaluateWarnings(usage2, warned, laterNow);
-      expect(second).toHaveLength(1);
+      const at1h = now + HOUR;
+      const { usage: u2 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, at1h);
+      evaluateWarnings(u2, warned, at1h);
+
+      const at2h = now + 2 * HOUR;
+      const { usage: u3 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, at2h);
+      evaluateWarnings(u3, warned, at2h);
+
+      const at3h = now + 3 * HOUR;
+      const { usage: u4 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 5 * HOUR }, at3h);
+      const result = evaluateWarnings(u4, warned, at3h);
+      expect(result).toHaveLength(0);
+      expect(warned.sessionHotCount).toBe(3);
+    });
+
+    it('schedule works independently per warning type', () => {
+      const now = Date.now();
+      const warned = freshWarningState(now);
+
+      // Fire session at startup
+      const { usage: u1 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 3 * HOUR, weeklyPct: 40, weeklyResetsIn: DAY }, now);
+      const r1 = evaluateWarnings(u1, warned, now);
+      expect(r1).toHaveLength(2); // session hot + underuse
+
+      // At 1h, fire both again
+      const at1h = now + HOUR;
+      const { usage: u2 } = makeUsage({ fiveHourPct: 90, fiveHourResetsIn: 3 * HOUR, weeklyPct: 40, weeklyResetsIn: DAY }, at1h);
+      const r2 = evaluateWarnings(u2, warned, at1h);
+      expect(r2).toHaveLength(2);
+
+      expect(warned.sessionHotCount).toBe(2);
+      expect(warned.weeklyUnderuseCount).toBe(2);
     });
   });
 
   describe('combined scenarios', () => {
     it('can fire session hot and weekly hot simultaneously', () => {
-      const { usage, now } = makeUsage({
+      const now = Date.now();
+      const { usage } = makeUsage({
         fiveHourPct: 90,
         fiveHourResetsIn: 2 * HOUR,
         weeklyPct: 85,
         weeklyResetsIn: 3 * DAY,
-      });
-      const warned = freshWarningState();
+      }, now);
+      const warned = freshWarningState(now);
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(2);
       expect(result.map(w => w.level)).toEqual(['warning', 'warning']);

@@ -8,21 +8,30 @@ export interface Warning {
 }
 
 export interface WarningState {
-  sessionHotAt: number;
-  weeklyHotAt: number;
-  weeklyUnderuseAt: number;
+  activatedAt: number;
+  sessionHotCount: number;
+  weeklyHotCount: number;
+  weeklyUnderuseCount: number;
 }
 
-/** Cooldown between re-firing the same warning (30 minutes) */
-export const WARNING_COOLDOWN_MS = 30 * 60_000;
+/** Schedule: fire at 0h, 1h, 2h from activation — max 3 per type */
+const SCHEDULE_MS = [0, 3_600_000, 2 * 3_600_000];
+const MAX_FIRES = 3;
 
-export function freshWarningState(): WarningState {
-  return { sessionHotAt: 0, weeklyHotAt: 0, weeklyUnderuseAt: 0 };
+export function freshWarningState(now: number = Date.now()): WarningState {
+  return { activatedAt: now, sessionHotCount: 0, weeklyHotCount: 0, weeklyUnderuseCount: 0 };
+}
+
+function shouldFire(count: number, activatedAt: number, now: number): boolean {
+  if (count >= MAX_FIRES) return false;
+  const elapsed = now - activatedAt;
+  const nextAt = SCHEDULE_MS[count];
+  return elapsed >= nextAt;
 }
 
 /**
  * Evaluates usage against thresholds. Returns warnings that should be shown.
- * Warnings re-fire after a cooldown period instead of being one-shot.
+ * Fires at most 3 times per type: at startup, after 1h, after 2h.
  *
  * Thresholds:
  * - Session: >= 80% with >= 1h until reset
@@ -40,8 +49,8 @@ export function evaluateWarnings(
   if (usage.fiveHour) {
     const msLeft = usage.fiveHour.resetsAt.getTime() - now;
     const hot = usage.fiveHour.utilization >= 80 && msLeft >= 3_600_000;
-    if (hot && now - warned.sessionHotAt >= WARNING_COOLDOWN_MS) {
-      warned.sessionHotAt = now;
+    if (hot && shouldFire(warned.sessionHotCount, warned.activatedAt, now)) {
+      warned.sessionHotCount++;
       const pct = Math.round(usage.fiveHour.utilization);
       const h = Math.floor(msLeft / 3_600_000);
       const m = Math.round((msLeft % 3_600_000) / 60_000);
@@ -57,8 +66,8 @@ export function evaluateWarnings(
   if (weekly) {
     const msLeft = weekly.resetsAt.getTime() - now;
     const hot = weekly.utilization >= 80 && msLeft >= 86_400_000;
-    if (hot && now - warned.weeklyHotAt >= WARNING_COOLDOWN_MS) {
-      warned.weeklyHotAt = now;
+    if (hot && shouldFire(warned.weeklyHotCount, warned.activatedAt, now)) {
+      warned.weeklyHotCount++;
       const pct = Math.round(weekly.utilization);
       const days = Math.floor(msLeft / 86_400_000);
       const hrs = Math.round((msLeft % 86_400_000) / 3_600_000);
@@ -70,8 +79,8 @@ export function evaluateWarnings(
 
     // Weekly < 60% with < 2 days until reset (use it or lose it)
     const underuse = weekly.utilization < 60 && msLeft > 0 && msLeft < 2 * 86_400_000;
-    if (underuse && now - warned.weeklyUnderuseAt >= WARNING_COOLDOWN_MS) {
-      warned.weeklyUnderuseAt = now;
+    if (underuse && shouldFire(warned.weeklyUnderuseCount, warned.activatedAt, now)) {
+      warned.weeklyUnderuseCount++;
       const pct = Math.round(weekly.utilization);
       const remaining = 100 - pct;
       const hrs = Math.round(msLeft / 3_600_000);
