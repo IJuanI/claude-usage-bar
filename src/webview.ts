@@ -37,6 +37,7 @@ export function getWebviewHtml(
       <div class="row">
         <div class="row-left">
           <div class="row-label">${esc(label)}</div>
+          ${sublabel ? `<div class="row-sub">${esc(sublabel)}</div>` : ''}
           ${resetStr ? `<div class="row-sub">${esc(resetStr)}</div>` : ''}
         </div>
         <div class="row-right">

@@ -27,53 +27,108 @@ function makeUsage(overrides: Partial<{
 }
 
 describe('evaluateWarnings', () => {
-  describe('session warnings (>=60%, >=1h to reset)', () => {
-    it('warns at 60% with 2h left (info level)', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 65, fiveHourResetsIn: 2 * HOUR });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].level).toBe('info');
-      expect(result[0].message).toContain('elevated');
-      expect(result[0].message).toContain('65%');
-    });
-
-    it('warns at 75% as warning level', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 80, fiveHourResetsIn: 2 * HOUR });
+  describe('session hot (>=80%, >=1h to reset)', () => {
+    it('warns when session is at 80% with 2h left', () => {
+      const { usage, now } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR });
       const warned = freshWarningState();
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
       expect(result[0].level).toBe('warning');
-      expect(result[0].message).toContain('high');
+      expect(result[0].message).toContain('session at 85%');
     });
 
-    it('warns at 90%+ as critically high', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 95, fiveHourResetsIn: 2 * HOUR });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].message).toContain('critically high');
-    });
-
-    it('does not warn below 60%', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 55, fiveHourResetsIn: 3 * HOUR });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(0);
-    });
-
-    it('does not warn when less than 1h to reset', () => {
+    it('does not warn when session is at 80% but less than 1h to reset', () => {
       const { usage, now } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 30 * 60_000 });
       const warned = freshWarningState();
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(0);
     });
 
-    it('fires at exactly 60% with exactly 1h', () => {
-      const { usage, now } = makeUsage({ fiveHourPct: 60, fiveHourResetsIn: HOUR });
+    it('does not warn when session is below 80%', () => {
+      const { usage, now } = makeUsage({ fiveHourPct: 70, fiveHourResetsIn: 3 * HOUR });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+
+    it('fires at exactly 80% with exactly 1h', () => {
+      const { usage, now } = makeUsage({ fiveHourPct: 80, fiveHourResetsIn: HOUR });
       const warned = freshWarningState();
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(1);
+    });
+
+    it('does not fire at 79.5% session', () => {
+      const { usage, now } = makeUsage({ fiveHourPct: 79.5, fiveHourResetsIn: 2 * HOUR });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('weekly hot (>=80%, >=24h to reset)', () => {
+    it('warns when weekly is at 80% with 3 days left', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 82, weeklyResetsIn: 3 * DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(1);
+      expect(result[0].level).toBe('warning');
+      expect(result[0].message).toContain('weekly usage at 82%');
+    });
+
+    it('does not warn when weekly is high but less than 24h to reset', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 90, weeklyResetsIn: 12 * HOUR });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+
+    it('does not warn when weekly is below 80%', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 75, weeklyResetsIn: 5 * DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('weekly underuse (<60%, <2 days to reset)', () => {
+    it('shows info when weekly at 40% with 1 day left', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(1);
+      expect(result[0].level).toBe('info');
+      expect(result[0].message).toContain('60% capacity');
+      expect(result[0].message).toContain('Use it or lose it');
+    });
+
+    it('does not show when weekly at 40% but 3 days left', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: 3 * DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+
+    it('does not show when weekly at 70% with 1 day left', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 70, weeklyResetsIn: DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
+    });
+
+    it('fires at exactly 59% with just under 2 days', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 59, weeklyResetsIn: 2 * DAY - 1 });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(1);
+      expect(result[0].level).toBe('info');
+    });
+
+    it('does not fire at exactly 60%', () => {
+      const { usage, now } = makeUsage({ weeklyPct: 60, weeklyResetsIn: DAY });
+      const warned = freshWarningState();
+      const result = evaluateWarnings(usage, warned, now);
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -88,7 +143,7 @@ describe('evaluateWarnings', () => {
       expect(second).toHaveLength(0);
     });
 
-    it('re-fires after cooldown expires (30 min)', () => {
+    it('re-fires session warning after cooldown expires (30 min)', () => {
       const now = Date.now();
       const { usage } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, now);
       const warned = freshWarningState();
@@ -96,7 +151,6 @@ describe('evaluateWarnings', () => {
       const first = evaluateWarnings(usage, warned, now);
       expect(first).toHaveLength(1);
 
-      // Need to recreate usage with adjusted reset time for the later "now"
       const laterNow = now + WARNING_COOLDOWN_MS;
       const { usage: usage2 } = makeUsage({ fiveHourPct: 85, fiveHourResetsIn: 2 * HOUR }, laterNow);
       const second = evaluateWarnings(usage2, warned, laterNow);
@@ -105,14 +159,14 @@ describe('evaluateWarnings', () => {
 
     it('re-fires weekly warning after cooldown', () => {
       const now = Date.now();
-      const { usage } = makeUsage({ weeklyPct: 60, weeklyResetsIn: 3 * DAY }, now);
+      const { usage } = makeUsage({ weeklyPct: 85, weeklyResetsIn: 3 * DAY }, now);
       const warned = freshWarningState();
 
       const first = evaluateWarnings(usage, warned, now);
       expect(first).toHaveLength(1);
 
       const laterNow = now + WARNING_COOLDOWN_MS;
-      const { usage: usage2 } = makeUsage({ weeklyPct: 60, weeklyResetsIn: 3 * DAY }, laterNow);
+      const { usage: usage2 } = makeUsage({ weeklyPct: 85, weeklyResetsIn: 3 * DAY }, laterNow);
       const second = evaluateWarnings(usage2, warned, laterNow);
       expect(second).toHaveLength(1);
     });
@@ -123,7 +177,6 @@ describe('evaluateWarnings', () => {
       const warned = freshWarningState();
 
       const first = evaluateWarnings(usage, warned, now);
-      // weeklyHot (50%+) won't fire since 25% < 50%, but underuse will
       expect(first).toHaveLength(1);
       expect(first[0].message).toContain('Use it or lose it');
 
@@ -134,97 +187,8 @@ describe('evaluateWarnings', () => {
     });
   });
 
-  describe('weekly hot (>=50%, >=24h to reset)', () => {
-    it('warns at 50% with 3 days left (info level)', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 55, weeklyResetsIn: 3 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].level).toBe('info');
-      expect(result[0].message).toContain('elevated');
-    });
-
-    it('warns at 75% as warning level', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 82, weeklyResetsIn: 3 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].level).toBe('warning');
-      expect(result[0].message).toContain('high');
-    });
-
-    it('warns at 90%+ as critically high', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 95, weeklyResetsIn: 3 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].message).toContain('critically high');
-    });
-
-    it('does not warn below 50%', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 45, weeklyResetsIn: 5 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(0);
-    });
-
-    it('does not warn when less than 24h to reset', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 90, weeklyResetsIn: 12 * HOUR });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(0);
-    });
-  });
-
-  describe('weekly underuse (<80%, <3 days to reset)', () => {
-    it('shows info when weekly at 25% with 29h left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 25, weeklyResetsIn: 29 * HOUR });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].level).toBe('info');
-      expect(result[0].message).toContain('75% capacity');
-      expect(result[0].message).toContain('Use it or lose it');
-    });
-
-    it('shows info when weekly at 40% with 1 day left', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(1);
-      expect(result[0].message).toContain('60% capacity');
-    });
-
-    it('shows underuse when weekly at 75% with 2 days left (also fires hot)', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 75, weeklyResetsIn: 2 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      // hot (75% >= 50%, 2d >= 24h) + underuse (75% < 80%, 2d < 3d)
-      expect(result).toHaveLength(2);
-      const underuse = result.find(w => w.message.includes('Use it or lose it'));
-      expect(underuse).toBeDefined();
-      expect(underuse!.message).toContain('25% capacity');
-    });
-
-    it('does not fire when weekly at 80% (threshold is <80%)', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 80, weeklyResetsIn: 2 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      // 80% >= 50% with >= 24h fires the hot warning, not underuse
-      const underuse = result.filter(w => w.message.includes('Use it or lose it'));
-      expect(underuse).toHaveLength(0);
-    });
-
-    it('does not fire when 4 days left (>3 day window)', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 40, weeklyResetsIn: 4 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      expect(result).toHaveLength(0);
-    });
-  });
-
   describe('combined scenarios', () => {
-    it('can fire session and weekly simultaneously', () => {
+    it('can fire session hot and weekly hot simultaneously', () => {
       const { usage, now } = makeUsage({
         fiveHourPct: 90,
         fiveHourResetsIn: 2 * HOUR,
@@ -234,14 +198,7 @@ describe('evaluateWarnings', () => {
       const warned = freshWarningState();
       const result = evaluateWarnings(usage, warned, now);
       expect(result).toHaveLength(2);
-    });
-
-    it('can fire weekly hot AND underuse when 50-79% with <3d but >=24h', () => {
-      const { usage, now } = makeUsage({ weeklyPct: 55, weeklyResetsIn: 2 * DAY });
-      const warned = freshWarningState();
-      const result = evaluateWarnings(usage, warned, now);
-      // hot (55% >= 50%, 2d >= 24h) + underuse (55% < 80%, 2d < 3d)
-      expect(result).toHaveLength(2);
+      expect(result.map(w => w.level)).toEqual(['warning', 'warning']);
     });
 
     it('returns empty when no data is present', () => {

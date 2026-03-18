@@ -25,9 +25,9 @@ export function freshWarningState(): WarningState {
  * Warnings re-fire after a cooldown period instead of being one-shot.
  *
  * Thresholds:
- * - Session: >= 60% with >= 1h until reset
- * - Weekly:  >= 50% with >= 24h until reset
- * - Underuse: < 80% with < 3 days until reset ("use it or lose it")
+ * - Session: >= 80% with >= 1h until reset
+ * - Weekly:  >= 80% with >= 24h until reset
+ * - Underuse: < 60% with < 2 days until reset ("use it or lose it")
  */
 export function evaluateWarnings(
   usage: UsageData,
@@ -36,42 +36,40 @@ export function evaluateWarnings(
 ): Warning[] {
   const warnings: Warning[] = [];
 
-  // Session >= 60% with >= 1h until reset
+  // Session >= 80% with >= 1h until reset
   if (usage.fiveHour) {
     const msLeft = usage.fiveHour.resetsAt.getTime() - now;
-    const hot = usage.fiveHour.utilization >= 60 && msLeft >= 3_600_000;
+    const hot = usage.fiveHour.utilization >= 80 && msLeft >= 3_600_000;
     if (hot && now - warned.sessionHotAt >= WARNING_COOLDOWN_MS) {
       warned.sessionHotAt = now;
       const pct = Math.round(usage.fiveHour.utilization);
       const h = Math.floor(msLeft / 3_600_000);
       const m = Math.round((msLeft % 3_600_000) / 60_000);
-      const severity = pct >= 90 ? 'critically high' : pct >= 75 ? 'high' : 'elevated';
       warnings.push({
-        level: pct >= 75 ? 'warning' : 'info',
-        message: `Claude session ${severity} at ${pct}% with ${h}h ${m}m until reset — consider pacing your usage.`,
+        level: 'warning',
+        message: `Claude session at ${pct}% with ${h}h ${m}m until reset — consider pacing your usage.`,
       });
     }
   }
 
-  // Weekly >= 50% with >= 24h until reset
+  // Weekly >= 80% with >= 24h until reset
   const weekly = usage.sevenDay;
   if (weekly) {
     const msLeft = weekly.resetsAt.getTime() - now;
-    const hot = weekly.utilization >= 50 && msLeft >= 86_400_000;
+    const hot = weekly.utilization >= 80 && msLeft >= 86_400_000;
     if (hot && now - warned.weeklyHotAt >= WARNING_COOLDOWN_MS) {
       warned.weeklyHotAt = now;
       const pct = Math.round(weekly.utilization);
       const days = Math.floor(msLeft / 86_400_000);
       const hrs = Math.round((msLeft % 86_400_000) / 3_600_000);
-      const severity = pct >= 90 ? 'critically high' : pct >= 75 ? 'high' : 'elevated';
       warnings.push({
-        level: pct >= 75 ? 'warning' : 'info',
-        message: `Claude weekly usage ${severity} at ${pct}% with ${days}d ${hrs}h until reset — you may run out before it resets.`,
+        level: 'warning',
+        message: `Claude weekly usage at ${pct}% with ${days}d ${hrs}h until reset — you may run out before it resets.`,
       });
     }
 
-    // Weekly < 80% with < 3 days until reset (use it or lose it)
-    const underuse = weekly.utilization < 80 && msLeft > 0 && msLeft < 3 * 86_400_000;
+    // Weekly < 60% with < 2 days until reset (use it or lose it)
+    const underuse = weekly.utilization < 60 && msLeft > 0 && msLeft < 2 * 86_400_000;
     if (underuse && now - warned.weeklyUnderuseAt >= WARNING_COOLDOWN_MS) {
       warned.weeklyUnderuseAt = now;
       const pct = Math.round(weekly.utilization);
