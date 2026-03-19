@@ -2,14 +2,14 @@
   "name": "claude-better-usage",
   "publisher": "ijuani",
   "displayName": "Claude Code - Better Usage",
-  "description": "Shows Claude Code usage (rate limits) in the VSCode status bar",
+  "description": "Shows Claude Code usage (rate limits) in the status bar + real-time background agent monitoring panel",
   "icon": "favicon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/IJuanI/claude-usage-bar"
   },
-  "version": "0.3.4",
+  "version": "0.4.0",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -29,10 +29,40 @@
       {
         "command": "claudeUsageBar.openPanel",
         "title": "Claude Usage Bar: Open Panel"
+      },
+      {
+        "command": "claudeUsageBar.toggleDebug",
+        "title": "Claude Agents: Toggle Debug Mode"
+      },
+      {
+        "command": "claudeUsageBar.copyDebugInfo",
+        "title": "Claude Agents: Copy Workspace & Session"
+      },
+      {
+        "command": "claudeUsageBar.openAgents",
+        "title": "Background Agents",
+        "icon": {
+          "light": "media/agents-icon-light.svg",
+          "dark": "media/agents-icon.svg"
+        }
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "claudeUsageBar.openAgents",
+          "when": "claudeUsageBar.hasBackgroundAgents && activeWebviewPanelId == claudeVSCodePanel",
+          "group": "navigation"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "claude-sessions-sidebar": [
+        {
+          "type": "webview",
+          "id": "claudeUsageBar.agentView",
+          "name": "Background Agents"
+        },
         {
           "type": "webview",
           "id": "claudeUsageBar.usageView",
@@ -47,6 +77,11 @@
           "type": "number",
           "default": 60,
           "description": "How often to refresh usage data (seconds)"
+        },
+        "claudeUsageBar.debugMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show debug toolbar in Claude Agents panel (workspace/session selectors)"
         }
       }
     }

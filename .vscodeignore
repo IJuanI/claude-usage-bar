@@ -9,4 +9,5 @@ package-lock.json
 **/*.vsix
 .git/**
 .gitignore
-media/**
+media/*.png
+media/*.jpg

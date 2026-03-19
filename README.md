@@ -1,8 +1,10 @@
 # Claude Code - Better Usage
 
-A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage and rate limits directly in the status bar and sidebar.
+A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage and rate limits directly in the status bar and sidebar, plus a real-time monitoring panel for background agents.
 
 ## Features
+
+### Usage monitoring
 
 - **Status bar** — at-a-glance usage with countdown to reset
 
@@ -25,6 +27,23 @@ A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage 
   ![Notification](https://raw.githubusercontent.com/IJuanI/claude-usage-bar/main/media/notification.png)
 - **429 backoff** — automatically backs off for 5 minutes if rate-limited
 
+### Background agent monitoring
+
+Real-time panel for tracking Claude Code background agents (sidechain tasks).
+
+- **Collapsible task cards** — each agent is shown as a card with status, model, description, and block count; click to expand and see full output
+- **Live updates** — polls every 2s with incremental DOM updates (no page reloads), preserving scroll position, search input, and expand state
+- **Session labels** — each task shows which session it belongs to
+- **Search** — filter agents by description, ID, model, session name, or content (indexes tool calls, text blocks, and errors)
+- **Status filter** — toggle between All / Active / Done
+- **Grouped view** — when viewing multiple sessions, toggle between flat and grouped-by-session layout
+- **Multi-session support** — select one or more sessions to monitor simultaneously; only sessions with background tasks are shown
+- **Workspace picker** — switch between workspaces to monitor agents from different projects
+- **Editor title icon** — appears next to Claude Code's own icon when background tasks are active; opens the agent panel as a side editor
+- **Markdown rendering** — agent text output is rendered with headers, bold, italic, code blocks, lists, tables, and horizontal rules
+- **Smart scrolling** — auto-scrolls to bottom for running tasks, locks when you scroll up; Start/End navigation buttons appear on hover
+- **Debug mode** — toggle via command palette or `claudeUsageBar.debugMode` setting for development
+
 ## What's shown
 
 | Metric | Description |
@@ -45,10 +64,13 @@ A VS Code extension that shows your [Claude Code](https://claude.ai/code) usage 
 | Setting | Default | Description |
 |---|---|---|
 | `claudeUsageBar.refreshInterval` | `60` | How often to refresh usage data (seconds) |
+| `claudeUsageBar.debugMode` | `false` | Enable debug mode (always show agent icon, dev badge in toolbar) |
 
 ## How it works
 
-Credentials are read directly from the Claude Code OAuth token stored locally — no additional sign-in required. Usage data is fetched from `api.anthropic.com/api/oauth/usage` and cached in `~/.claude/claude-usage-bar-cache.json` so multiple VS Code windows don't each make independent API calls.
+**Usage:** Credentials are read directly from the Claude Code OAuth token stored locally — no additional sign-in required. Usage data is fetched from `api.anthropic.com/api/oauth/usage` and cached in `~/.claude/claude-usage-bar-cache.json` so multiple VS Code windows don't each make independent API calls.
+
+**Background agents:** Session data is read from `~/.claude/projects/` JSONL files. Agent output files are discovered at `/tmp/claude-*/` task directories. The extension parses these incrementally using byte offsets to avoid re-reading completed content. Completion is detected via `stop_reason=end_turn` with a 30-second staleness heuristic.
 
 ## License
 

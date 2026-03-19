@@ -14,6 +14,7 @@ import {
 } from './cache';
 import { getWebviewHtml } from './webview';
 import { evaluateWarnings, freshWarningState } from './warnings';
+import { AgentPanelProvider } from './agentPanel';
 
 const BACKOFF_429_MS = 5 * 60_000;
 
@@ -302,6 +303,17 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // ── Agent panel ─────────────────────────────────────────────
+  const agentProvider = new AgentPanelProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      AgentPanelProvider.viewType,
+      agentProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }
+    )
+  );
+  context.subscriptions.push(agentProvider);
+
   // ── Commands ──────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand('claudeUsageBar.openPanel', async () => {
@@ -314,6 +326,34 @@ export function activate(context: vscode.ExtensionContext) {
       statusBar.text = '$(sync~spin) Claude';
       await fetchAndUpdate(true);
       render();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeUsageBar.toggleDebug', async () => {
+      const config = vscode.workspace.getConfiguration('claudeUsageBar');
+      const current = config.get<boolean>('debugMode', false);
+      await config.update('debugMode', !current, vscode.ConfigurationTarget.Global);
+      vscode.window.showInformationMessage(`Claude Agents debug mode: ${!current ? 'ON' : 'OFF'}`);
+      agentProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeUsageBar.copyDebugInfo', async () => {
+      const info = agentProvider.getDebugInfo();
+      if (info) {
+        const sessions = info.sessionIds?.join(', ') ?? 'unknown';
+        const text = `workspace: ${info.workspace ?? 'unknown'}\nsessions: ${sessions}`;
+        await vscode.env.clipboard.writeText(text);
+        vscode.window.showInformationMessage('Copied workspace & session to clipboard');
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('claudeUsageBar.openAgents', () => {
+      agentProvider.openInEditor();
     })
   );
 
